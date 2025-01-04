@@ -1,6 +1,7 @@
 import { validationResult } from "express-validator";
 import userModel from "../models/user.model.js";
 import userService from "../services/user.service.js";
+import redisClient from "../services/redis.service.js";
 
 const register = async (req, res, next) => {
     const errors = validationResult(req);
@@ -61,5 +62,28 @@ const login = async (req, res, next) => {
 const Profile=async (req,res,next) => {
     res.status(200).json(req.user)
 }
+const logout = async (req, res, next) => {
+    try {
+        // Extract token from the Authorization header
+        const token = req.headers.authorization?.split(" ")[1];
 
-export { register,login,Profile};
+        if (!token) {
+            return res.status(401).json({ 
+                success: false,
+                 message: "No token found" 
+                });
+        }
+
+        // Add the token to the Redis blacklist
+        await redisClient.set(token, 'logout', 'EX', 60 * 60 * 24); // Blacklist token for 24 hours
+
+        // Clear the token cookie
+        res.clearCookie('token');
+
+        return res.json({ success: true, message: "Logged out successfully" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export { register,login,Profile,logout};
