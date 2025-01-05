@@ -23,42 +23,52 @@ const register = async (req, res, next) => {
 
         // Generate a token
         const token = user.generateAuthtoken();
+     delete user._doc.password
+     res.json({
+        success: true,
+        message: "Register successful",
+        token,
+        user, // Send user data to the client
+    }); 
 
-        res.status(201).json({ token, user });
     } catch (error) {
         next(error); // Use centralized error handling
     }
 };
 const login = async (req, res, next) => {
     try {
-        const { email, password } = req.body
+        const { email, password } = req.body;
 
-        // Find captain and include password field
-        const user = await userModel.findOne({ email }).select('+password')
+        // Find the user and include password field
+        const user = await userModel.findOne({ email }).select('+password');
         if (!user) {
-            throw createError(401, "Invalid credentials")
+            throw createError(401, "Invalid credentials");
         }
 
         // Verify password
-        const isValidPassword = await user.comparePassword(password)
+        const isValidPassword = await user.comparePassword(password);
         if (!isValidPassword) {
-            throw createError(401, "Invalid credentials")
+            throw createError(401, "Invalid credentials");
         }
 
         // Generate token
-        const token = user.generateAuthtoken()
-        res.cookie("token",token)
+        const token = user.generateAuthtoken();
+        delete user._doc.password;
 
+        res.cookie("token", token); // Optional, for cookie storage
+
+        // Include user object in the response
         res.json({
             success: true,
             message: "Login successful",
-            token
-        })
-
+            token,
+            user, // Send user data to the client
+        });
     } catch (error) {
-        next(error)
+        next(error);
     }
-}
+};
+
 const Profile=async (req,res,next) => {
     res.status(200).json(req.user)
 }

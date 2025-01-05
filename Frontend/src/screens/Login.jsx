@@ -1,12 +1,13 @@
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { Link,useNavigate } from 'react-router-dom'
 import axios from "../config/Axios"
-
+import { UserContext } from '../context/user.context'
 const Login = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({  
     email: '',
     password: ''
   })
+  const {setUser}=useContext(UserContext)
 const navigate=useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -16,14 +17,22 @@ const navigate=useNavigate()
     setError(null)
      
     try {
-      const response = await axios.post('/user/login', formData)
-      console.log('Login successfull:', response.data)
-      navigate("/")
-      
-    } catch (err) {
-      setError(err.response?.data?.message || 'Login failed')
-      console.error('Login :', err)
-    } finally {
+      const response = await axios.post('/user/login', formData);
+      console.log('Login successful:', response.data);
+  
+      // Store the token and user in localStorage
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+  
+      // Set user in context
+      setUser(response.data.user);
+  
+      navigate("/");
+  } catch (err) {
+      setError(err.response?.data?.message || 'Login failed');
+      console.error('Login error:', err);
+  }
+  finally {
       setLoading(false)
     }
   }
