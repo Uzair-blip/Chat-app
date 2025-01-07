@@ -69,7 +69,7 @@ const login = async (req, res, next) => {
     }
 };
 
-const Profile=async (req,res,next) => {
+const Profile=async (req,res) => {
     res.status(200).json(req.user)
 }
 const logout = async (req, res, next) => {
@@ -95,5 +95,17 @@ const logout = async (req, res, next) => {
         next(error);
     }
 };
-
-export { register,login,Profile,logout};
+const Allusers=async (req,res,next) => {
+    try {
+        const loggedInUser = await userModel.findOne({
+            email:req.user.email
+        });
+        const allusers=await userService.GetallUser({userId:loggedInUser._id})
+        return res.status(200).json({
+            users:allusers
+        })
+    } catch (error) {
+        
+    }
+}
+export { register,login,Profile,logout,Allusers};

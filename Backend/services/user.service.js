@@ -16,5 +16,11 @@ const CreateUser = async ({ email, password }) => {
 
     return user;
 };
-
-export default { CreateUser };
+const GetallUser=async ({userId}) => {
+    //agr userid hogi ti ap es user ko nhi lao fu
+    const users=await userModel.find({
+        _id:{$ne:userId}
+    })
+    return users
+}
+export default { CreateUser,GetallUser };

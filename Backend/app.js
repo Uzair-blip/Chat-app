@@ -2,7 +2,9 @@ import express from "express";
 import morgan from "morgan";
 const app = express();
 import userRoutes from "./routes/user.routes.js"
+import projectRoutes from "./routes/project.routes.js"
 import cors from "cors"
+
 // Middleware
 app.use(morgan("dev"));
 app.use(express.json());
@@ -14,6 +16,7 @@ app.use(cors({
 }));
 //user routes
 app.use("/user",userRoutes)
+app.use("/project",projectRoutes)
 
 // Routes
 app.get("/", (req, res) => {
