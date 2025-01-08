@@ -8,30 +8,40 @@ const Home = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [projectName, setProjectName] = useState('')
   const [project, setProject] = useState([]);
-const navigate=useNavigate()  
-//useeffect k thorugh humny ek api call krni a or us api k through humny data mangana a k particular user kis kis project me a
-  const handleSubmit =async (e) => {
+  const navigate = useNavigate()
+//fetch all projects from db
+  const fetchProjects = async () => {
+    try {
+      const res = await axios.get("/project/all");
+      setProject(res.data.projects);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+//when click on submit it will create project 
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
-    await axios.post("/project/create",{
-      name:projectName
-    })
-    .then((response) => {
+    try {
+      const response = await axios.post("/project/create", {
+        name: projectName
+      });
       console.log('Project created successfully:', response.data);
-    })
-    .catch((error) => {
+      
+      // Fetch updated projects list after creating new project
+      await fetchProjects();
+      
+      setIsModalOpen(false);
+      setProjectName('');
+    } catch (error) {
       console.error('Error creating project:', error.response?.data?.message || error.message);
-    });
-    setIsModalOpen(false)
-    setProjectName('')
+    }
   }
-useEffect(() => {
-  axios.get("/project/all").then((res)=>{
-setProject(res.data.projects)
-  }).catch(err=>{
-    console.log(err)
-  })
-}, []);
+  //this is render on home page without reloading 
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
@@ -42,7 +52,7 @@ setProject(res.data.projects)
           >
             Create Project
           </button>
-        
+          <div className='flex flex-row-reverse gap-2  ' > 
           {project.length === 0 ? (
             // Skeleton loader cards
             <>
@@ -56,11 +66,12 @@ setProject(res.data.projects)
               </div>
             </>
           ) : (
+  
             project.map((proj) => (
               <div 
                 key={proj._id} 
                 onClick={() => navigate('/project', { state: { project: proj } })}
-                className='flex flex-col border gap-2 min-w-52 hover:bg-slate-100 cursor-pointer p-4'
+                className='flex flex-col border gap-2 min-w-24 hover:bg-slate-100 cursor-pointer p-4'
               >
                 <h3 className="text-xl font-semibold mb-2">{proj.name}</h3>
                 <div className="flex gap-2 mb-2">
@@ -73,7 +84,7 @@ setProject(res.data.projects)
               </div>
             ))
           )}
-  
+    </div>
           </div>
         </div>
               <div>
