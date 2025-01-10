@@ -4,21 +4,37 @@ import axios from "../config/Axios"
 import { useNavigate } from 'react-router-dom'
 
 const Home = () => {
-  const { user } = useContext(UserContext)
+  const { user, setUser } = useContext(UserContext)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [projectName, setProjectName] = useState('')
   const [project, setProject] = useState([]);
   const navigate = useNavigate()
-//fetch all projects from db
+
+  const handleLogout = async () => {
+    try {
+      await axios.post("/user/logout");
+      setUser(null);
+      navigate("/login");
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
+  //fetch all projects from db
   const fetchProjects = async () => {
+    if (!user) {
+      return;
+    }
+  
     try {
       const res = await axios.get("/project/all");
       setProject(res.data.projects);
     } catch (err) {
-      console.log(err);
+      console.error("Error fetching projects:", err);
     }
   };
-//when click on submit it will create project 
+  
+  //when click on submit it will create project 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -26,7 +42,6 @@ const Home = () => {
       const response = await axios.post("/project/create", {
         name: projectName
       });
-      console.log('Project created successfully:', response.data);
       
       // Fetch updated projects list after creating new project
       await fetchProjects();
@@ -37,21 +52,35 @@ const Home = () => {
       console.error('Error creating project:', error.response?.data?.message || error.message);
     }
   }
+
   //this is render on home page without reloading 
   useEffect(() => {
-    fetchProjects();
-  }, []);
-
+    if (user) {
+      // Fetch projects only if the user is authenticated
+      fetchProjects();
+    }
+  }, [user]);
+  
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex gap-3">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Create Project
+            </button>
+          </div>
           <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            onClick={handleLogout}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
           >
-            Create Project
+            Logout
           </button>
+        </div>
+        <div className="flex gap-3">
           <div className='flex flex-row-reverse gap-2  ' > 
           {project.length === 0 ? (
             // Skeleton loader cards

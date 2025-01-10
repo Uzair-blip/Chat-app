@@ -14,7 +14,7 @@ router.post(  "/register",
 );
 router.post("/login", login)
 router.get("/",authMiddleware.authUser,Profile)
-router.get("/logout",authMiddleware.authUser,logout)
+router.post("/logout",authMiddleware.authUser,logout)
 router.get("/allusers",authMiddleware.authUser,Allusers)
 
 export default router;

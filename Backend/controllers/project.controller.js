@@ -38,8 +38,6 @@ const getAllProjects = async (req, res) => {
         const userId = loggedInUser._id;
         
         const getallProjects = await ProjectService.getAllProjectsByUserId(userId);
-     
-        console.log(getallProjects)
         res.status(200).json({
             projects:getallProjects
         })

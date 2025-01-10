@@ -24,7 +24,7 @@ const Register = () => {
       localStorage.setItem("user", JSON.stringify(response.data.user));
       //Set user in context
       setUser(response.data.user);
-      navigate("/")
+      navigate("/login")
       
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed')
