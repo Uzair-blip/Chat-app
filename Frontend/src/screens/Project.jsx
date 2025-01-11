@@ -3,6 +3,7 @@ import React, { createRef, useContext, useEffect, useState } from "react";
 import { UserContext } from "../context/user.context";
 import { useLocation, useNavigate } from "react-router-dom";
 import { initilizeSocket, receiveMessage, sendMessage } from "../config/socket";
+import Markdown from "markdown-to-jsx"
 
 const Project = () => {
   const [sidepanelOpen, setSidepanelOpen] = useState(false);
@@ -59,7 +60,9 @@ const Project = () => {
       // Listen for new messages
       receiveMessage("project-msg", (data) => {
         setMessages((prevMessages) => [...prevMessages, data]);
-      });
+      }); 
+      
+      
 
       // Cleanup on component unmount
       return () => {
@@ -103,6 +106,7 @@ const Project = () => {
     });
   };
 
+
   const handleSendMessage = () => {
     if (!message) {
       console.error("Message is empty");
@@ -138,7 +142,7 @@ const Project = () => {
     <div>
       <main className="h-screen w-screen flex overflow-x-hidden scrollbar-hidden ">
         {/* Left Section */}
-        <section className="left flex flex-col min-w-[24rem] relative border-r border-gray-300">
+      <section className="left flex flex-col min-w-[24rem] relative border-r border-gray-300">
           {/* Fixed Header */}
           <header className="flex lg:w-[28%] md:w-[50%] w-[77%]  p-4 justify-between bg-gray-200 fixed top-0 z-10">
             <button
@@ -168,8 +172,16 @@ const Project = () => {
                   } mt-2`}
                 >
                   <small className="block text-xs">{msg.senderEmail}</small>
-                  <p className="text-sm">{msg.message}</p>
-                </div>
+                  <p className="text-sm">
+                {msg.sender._id==="ai"?            
+                <div className="overflow-auto bg-slate-950 text-white " >
+                   <Markdown>{msg.message}</Markdown> 
+                </div>  
+                :msg.message
+                }
+                  </p>
+                                  </div>
+
               ))}
             </div>
             {/* Input Area */}

@@ -3,6 +3,7 @@ import morgan from "morgan";
 const app = express();
 import userRoutes from "./routes/user.routes.js"
 import projectRoutes from "./routes/project.routes.js"
+import aiRoutes from "./routes/ai.routes.js"
 import cors from "cors"
 
 // Middleware
@@ -17,6 +18,7 @@ app.use(cors({
 //user routes
 app.use("/user",userRoutes)
 app.use("/project",projectRoutes)
+app.use("/ai",aiRoutes)
 
 // Routes
 app.get("/", (req, res) => {

@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { Server } from 'socket.io';
 import jwt from "jsonwebtoken"
 import projectModel from "./models/project.model.js";
+import { generateResult } from "./services/ai.service.js";
 import mongoose from "mongoose"
 app.use(cookieParser());
 const port = process.env.PORT || 3000;
@@ -53,10 +54,24 @@ io.on('connection', (socket) => {
   socket.join(socket.roomID);
 
   // Listen for messages and broadcast them only to others in the same room
-  socket.on('project-msg', (data) => {
-    socket.to(socket.roomID).emit('project-msg', data); // Broadcast to everyone except sender
+  socket.on('project-msg',async (data) => {
+    const message=data.message
+const aiPresentInMsg=message.includes("@ai")
+if(aiPresentInMsg){
+  const prompt=message.replace("@ai","")
+  const result =await generateResult(prompt)
+  socket.to(socket.roomID).emit('project-msg', data); 
+  io.to(socket.roomID).emit('project-msg', {
+    message:result,
+    sender:{
+      _id:"ai",
+      email:"Ai"
+    }
   });
+  }
 
+ // Broadcast to everyone except sender
+  });
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log("User disconnected:", socket.user);
@@ -72,5 +87,5 @@ server.listen(port, () => {
 });
 
 
-//mongodb data ko store krta a harddisk me
-// redis data ko store krta RAM me uski wja sy reading or writing speed zyada hti a  
+//mongodb daa ko store krta a harddisk me
+// redis data ko store krta RAM me uski wja sy reading or writing speed zyada hti a  t
