@@ -1,91 +1,77 @@
-import "dotenv/config.js"; // Load .env variables
+import "dotenv/config.js";
 import http from "http";
 import app from "./app.js";
 import connectDB from "./db/db.js";
-import cookieParser from 'cookie-parser';
-import { Server } from 'socket.io';
-import jwt from "jsonwebtoken"
+import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
 import projectModel from "./models/project.model.js";
 import { generateResult } from "./services/ai.service.js";
-import mongoose from "mongoose"
-app.use(cookieParser());
-const port = process.env.PORT || 3000;
+import mongoose from "mongoose";
+
 const server = http.createServer(app);
-const io = new Server(server,{
-  cors:{
-    origin:"*"
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Use specific origins in production
+  },
+});
+
+// Middleware for authentication
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token;
+    const projectId = socket.handshake.query.projectId;
+
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      throw new Error("Invalid project ID");
+    }
+
+    const project = await projectModel.findById(projectId);
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded) {
+      throw new Error("Authorization error");
+    }
+
+    socket.project = project;
+    socket.user = decoded;
+    next();
+  } catch (err) {
+    next(err);
   }
 });
 
-//io middleware jo sirf authenticated user ko e connect krny dygi
-io.use(async(socket, next) => {
-  try {
-    let token = socket.handshake.auth.token;
-    const projectId=socket.handshake.query.projectId  
-    if (!mongoose.Types.ObjectId.isValid(projectId)) {
-      throw new Error('Invalid project ID');
+// Event listeners
+io.on("connection", (socket) => {
+  socket.join(socket.project._id.toString());
+
+  console.log(`User connected: ${socket.user._id}`);
+
+  socket.on("project-msg", async (data) => {
+    const message = data.message;
+    const aiMessage = message.includes("@ai");
+    socket.to(socket.project._id.toString()).emit("project-msg", data);
+    if (aiMessage) {
+      const prompt = message.replace("@ai", "");
+      const result = await generateResult(prompt);
+
+      io.to(socket.project._id.toString()).emit("project-msg", {
+        message: result,
+        sender: { _id: "ai", email: "AI" },
+      });
     }
-    socket.project=await projectModel.findById(projectId)  //jis b prject k sth connect hongy uski id socket.project me ajaye gi 
-    if (!token) {
-      let authHeader = socket.handshake.headers.authorization;
-      if (!authHeader) {
-        throw new Error('Authentication error');
-      }
-      token = authHeader.split(' ')[1];
-    }
-    // Verify the token using JWT
-    const decoded= jwt.verify(token, process.env.JWT_SECRET)
-     if(!decoded){
-      return next(new Error("Authorization error "))
-     }
-     socket.user=decoded
-     next()
-  } catch (error) {
-    next(error);
-  }
+  });
+  socket.on("disconnect", () => {
+    console.log(`User disconnected: ${socket.user._id}`);
+    socket.leave(socket.project._id.toString());
+  });
 });
+
 // Connect to MongoDB
 connectDB();
-io.on('connection', (socket) => {
-  socket.roomID = socket.project._id.toString();
-  console.log("User connected:", socket.user);
 
-  // Join the room
-  socket.join(socket.roomID);
-
-  // Listen for messages and broadcast them only to others in the same room
-  socket.on('project-msg',async (data) => {
-    const message=data.message
-const aiPresentInMsg=message.includes("@ai")
-if(aiPresentInMsg){
-  const prompt=message.replace("@ai","")
-  const result =await generateResult(prompt)
-  socket.to(socket.roomID).emit('project-msg', data); 
-  io.to(socket.roomID).emit('project-msg', {
-    message:result,
-    sender:{
-      _id:"ai",
-      email:"Ai"
-    }
-  });
-  }
-
- // Broadcast to everyone except sender
-  });
-  // Handle disconnection
-  socket.on('disconnect', () => {
-    console.log("User disconnected:", socket.user);
-    socket.leave(socket.roomID)
-  });
+server.listen(process.env.PORT || 4000, () => {
+  console.log("Server is running");
 });
-
-
-
-
-server.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
-
-
-//mongodb daa ko store krta a harddisk me
-// redis data ko store krta RAM me uski wja sy reading or writing speed zyada hti a  t
