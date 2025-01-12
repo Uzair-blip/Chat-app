@@ -4,6 +4,8 @@ import { UserContext } from "../context/user.context";
 import { useLocation, useNavigate } from "react-router-dom";
 import { initilizeSocket, receiveMessage, sendMessage } from "../config/socket";
 import Markdown from "markdown-to-jsx"
+import hljs from 'highlight.js';
+import "highlight.js/styles/github-dark.css";
 
 const Project = () => {
   const [sidepanelOpen, setSidepanelOpen] = useState(false);
@@ -16,6 +18,15 @@ const Project = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [projectusers, setProjectusers] = useState(null);
+  const [currentFile, setCurrentFile] = useState(null);
+  const [openFiles, setOpenFiles] = useState([]);
+  
+  
+  const [filetree, setFiletree] = useState({
+    
+
+  });
+  
   const messagebox = createRef();
 
   useEffect(() => {
@@ -59,6 +70,11 @@ const Project = () => {
 
       // Listen for new messages
       receiveMessage("project-msg", (data) => {
+      const msg=JSON.parse(data.message)
+      console.log(msg)
+      if(msg.fileTree){
+        setFiletree(msg.fileTree)
+      }
         setMessages((prevMessages) => [...prevMessages, data]);
       }); 
       
@@ -137,6 +153,15 @@ const Project = () => {
   if (!projectusers) {
     return <div>Loading...</div>;
   }
+  function writeAiMsg(message){
+const msgObj=JSON.parse(message)
+    return (
+  
+  <div className="overflow-auto  p-1 rounded-sm  bg-slate-950 text-white " >
+<Markdown>{msgObj.text||"Here are code writing for you I am making structure for your code...."}</Markdown> 
+</div>  
+)
+  }
 
   return (
     <div>
@@ -171,17 +196,12 @@ const Project = () => {
                       : "bg-gray-200"
                   } mt-2`}
                 >
-                  <small className="block text-xs">{msg.senderEmail}</small>
-                  <p className="text-sm">
-                {msg.sender._id==="ai"?            
-                <div className="overflow-auto bg-slate-950 text-white " >
-                   <Markdown>{msg.message}</Markdown> 
-                </div>  
-                :msg.message
-                }
+                  <small className="block text-xs">{msg.sender._id === "ai" ? "AI" : msg.senderEmail}</small>
+                  <p className="text-sm ">
+                    {msg.sender._id === "ai" ? writeAiMsg(msg.message) : msg.message}
                   </p>
                                   </div>
-
+  
               ))}
             </div>
             {/* Input Area */}
@@ -234,6 +254,82 @@ const Project = () => {
             </div>
           </div>
         </section>
+        <section className="right z-10 flex-grow flex gap-2 h-full">
+      <div className="explorer flex flex-col max-w-32 h-full bg-slate-200">
+  <div className="filetree">
+  {Object.keys(filetree).length === 0 ? (
+  <p className="p-4 text-gray-500">No files available</p>
+) : (
+  Object.keys(filetree).map((file, index) => (
+    <button
+      key={index}
+      onClick={() => {
+        setCurrentFile(file);
+        setOpenFiles([...new Set(openFiles.concat(file))]);
+      }}
+      className="tree-element p-3 w-full flex items-center bg-slate-300"
+    >
+      <p className="font-semibold cursor-pointer">{file}</p>
+    </button>
+  ))
+)}
+
+  </div>
+</div>
+ {currentFile && (
+  <div className="code-editor flex flex-col flex-grow h-full">
+    {/* Tab Navigation for Open Files */}
+    <div className="top flex">
+      {openFiles.map((file, index) => (
+        <button
+          key={index}
+          className={`cursor-pointer p-3 ${
+            file === currentFile ? "bg-blue-300" : "bg-slate-200"
+          }`}
+          onClick={() => setCurrentFile(file)}
+        >
+          <p className="text-lg font-semibold">{file}</p>
+        </button>
+      ))}
+    </div>
+
+    {/* Code Editor Area */}
+      <div className="bottom flex flex-grow">
+        <div className="w-full h-full relative">
+          {/* Textarea for editing */}
+          <textarea
+            className="absolute top-0 left-0 w-full h-full bg-transparent z-10 p-3 font-mono text-sm outline-none resize-none opacity-0 "
+            value={filetree[currentFile]?.content || ""}
+            onChange={(e) => {
+              setFiletree({
+                ...filetree,
+                [currentFile]: {  
+                  content: e.target.value,
+                },
+              });
+            }}
+          ></textarea>
+
+          {/* Highlighted code view */}
+          <pre className="absolute top-0 left-0 w-full h-full p-3 font-mono text-sm whitespace-pre-wrap break-words overflow-auto z-0">
+            <code
+              className="hljs"
+              dangerouslySetInnerHTML={{
+                __html: hljs.highlightAuto(
+                  filetree[currentFile]?.content || ""
+                ).value,
+              }}
+            ></code>
+          </pre>
+        </div>
+      </div>
+  </div>
+)}
+
+
+
+        </section>
+          
       </main>
 
       {/* Modal for adding members */}
